@@ -2,7 +2,7 @@ blm buffer layout manager
 =========================
 
 ## About
-blm is a managed by vim buffer windows ob layouts,like a tab windows.
+blm manages the layout of the vim buffer window,like a tab windows.
 
 ## Usage
 Example (dein)
