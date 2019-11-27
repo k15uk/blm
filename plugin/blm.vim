@@ -4,9 +4,8 @@ endif
 let g:loaded_blm = 1
 
 augroup VimWrapper
-  autocmd! BufHidden * call blm#layout_update()
 	autocmd! VimWrapper VimEnter * if @%==''|call blm#init()
-	autocmd! VimWrapper TermOpen,BufEnter * call blm#buf_enter()
-	autocmd! VimWrapper BufDelete * call blm#buf_close()
-	autocmd! VimWrapper TermClose * call blm#term_close()
+	autocmd! VimWrapper TermOpen,TermEnter,BufEnter * call blm#enter_buffer()
+	autocmd! VimWrapper BufAdd * call blm#add_buffer()
+	autocmd! VimWrapper TermClose * call blm#close_term()
 augroup END

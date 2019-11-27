@@ -1,15 +1,19 @@
 " ##################
 " # buffer control #
 " ##################
-" buffer_change
+" change_buffer
 " @param vector : 0=normal, 1=reverse
 " #param order  : 0=terminal, -1(else)=else
-function! blm#buffer_change(vector,order)
-	let l:list=s:layouts[s:current_layout]['windows'] " assignment window list
+function! blm#change_buffer(vector,order)
+ " assignment buffer list
+	let l:buffers=[]
+  for buffer in s:layouts[s:current_layout]['buffers']
+    call add(l:buffers,buffer)
+  endfor
 
   " reverse depending on argument
 	if a:vector==1
-		let l:list=reverse(l:list)
+		let l:buffers=reverse(l:buffers)
 	endif
 
   " assignment args
@@ -24,43 +28,104 @@ function! blm#buffer_change(vector,order)
 
   " find target buffer
 	let l:target_buffer=-1
-	let l:find_current_buffer=0
+	let l:found_current_buffer=0
 
-	for window in l:list
-		if buflisted(window['buffer'])&&match(bufname(window['buffer']),'terminal.*')==l:order
-			if bufnr(window['buffer'])==bufnr('%') " find current buffer -> flag stands
-				let l:find_current_buffer=1
-			elseif l:find_current_buffer==0&&l:target_buffer==-1 " current buffer is not find = last buffer
-				let l:target_buffer=bufnr(window['buffer'])
-			elseif l:find_current_buffer==1 " if flag stands -> target buffer
-				let l:target_buffer=bufnr(window['buffer'])
-				break
+	for buffer in l:buffers
+		if buflisted(buffer)&&match(bufname(buffer),'terminal.*')==l:order
+			if l:target_buffer==-1
+				let l:target_buffer=buffer
+      endif
+			if buffer==bufnr('%')
+        " found current buffer -> flag stands
+				let l:found_current_buffer=1
+			elseif l:found_current_buffer==1
+        " if flag stands -> target buffer
+				let l:target_buffer=buffer
+        break
 			endif
 		endif
 	endfor
 
-	if l:target_buffer!=-1
+	if l:found_current_buffer==0&&l:order==0
+		" if the target buffer is not found
+    " and when order is terminal -> open new terminal
+		call blm#add_term(-1)
+  else
     " if find target buffer
 		execute ':'.l:target_buffer.'b'
-	elseif l:find_current_buffer==0&&l:order==0
-		" if the target buffer is not found and when order is terminal -> open new terminal
-		call blm#term_add(-1)
 	endif
 endfunction
+
+let s:ignore_add_buffer=1
+function! s:add_buffer()
+  if s:ignore_add_buffer==0
+    " check buffer in current layout buffer list
+    if !has_key(s:layouts[s:current_layout],'buffers')
+      let s:layouts[s:current_layout]['buffers']=[bufnr('%')]
+    endif
+    for i in range(len(s:layouts[s:current_layout]['buffers']))
+      if s:layouts[s:current_layout]['buffers'][i] == bufnr('%')
+        return
+      endif
+    endfor
+    " add buffer on current layout buffer list
+    call add(
+          \s:layouts[s:current_layout]['buffers']
+          \,bufnr('%')
+          \)
+    call s:update_layout()
+  endif
+endfunction
+
+" when buffer close
+function! s:remove_buffer()
+  for i in range(len(s:layouts[s:current_layout]['windows']))
+    if s:layouts[s:current_layout]['windows'][i]['buffer'] == bufnr('%')
+      call remove(s:layouts[s:current_layout]['windows'],i)
+      break
+    endif
+
+    for i in range(len(s:layouts[s:current_layout]['buffers']))
+      if s:layouts[s:current_layout]['buffers'][i] == bufnr('%')
+        call remove(s:layouts[s:current_layout]['buffers'],i)
+        break
+      endif
+    endfor
+
+    if len(s:layouts[s:current_layout]['windows']) == 0
+      call remove(s:layouts,s:current_layout)
+      if len(s:layouts) == 0
+        quit
+      else
+        call blm#switch_layout(-1)
+      endif
+    endif
+  endfor
+endfunction
+
 
 " ####################
 " # terminal control #
 " ####################
 " terminal open
-" param flg: 0=newlayout(terminal only window) else=terminal open by current window
-function! blm#term_add(flg)
-	call blm#layout_update()
-  let s:layout_update_ignore=1 " layout_update() disable ( ignition by 'only' )
+" param flg: 0   =newlayout(terminal only window)
+"            else=terminal open by current window
+function! blm#add_term(flg)
+	if a:flg==0
+    call s:update_layout()
+    let s:current_layout=len(s:layouts)
+    call add(s:layouts, {})
+	endif
 	if a:flg==0&&winnr('$')>1
 		only
 	endif
-	enew " create new window
-	call termopen(&shell,{'on_exit': 'blm#term_close'}) " terminal open
+  " disable add buffer
+  let s:ignore_add_buffer=1
+  " create new window
+	enew
+  " enable add buffer
+  let s:ignore_add_buffer=0
+	call termopen(&shell,{})
   " get unique number
 	let l:cnt=0
 	while bufexists('terminal'.l:cnt)
@@ -68,20 +133,17 @@ function! blm#term_add(flg)
 	endwhile
   " set buffer name by unique number 
 	execute ':f terminal'.l:cnt
-	let s:layout_update_ignore=0 " layout_update() enable
-	if a:flg==0
-		let s:current_layout=len(s:layouts) " list layout[] add
-	endif
+  call s:update_layout()
 endfunction
 
 " toggle on preview window by terminal
-function! blm#term_preview_toggle()
+function! blm#toggle_preview_term()
 	if &previewwindow
 		pclose
 	else
 		pedit
 		wincmd p
-		call blm#buffer_change(0,0)
+		call blm#change_buffer(0,0)
 		resize 14
 	endif
 endfunction
@@ -91,51 +153,53 @@ endfunction
 " ###################################
 let s:layouts=[]
 let s:current_layout=0
-let s:layout_update_ignore=0
 
 " layout update
-function! blm#layout_update()
-  " when switching layouts, layout update are disable
-	if s:layout_update_ignore==0
-    " close preview window
-    if &previewwindow
-      pclose
-    endif
+function! s:update_layout()
+  " close preview window
+  if &previewwindow
+    pclose
+  endif
 
-    " get layout info 
-		let l:windows=[]
-		for i in range(1,winnr('$'))
-			let l:window={'buffer':winbufnr(i),'width':winwidth(i),'height':winheight(i)}
-			call add(l:windows,l:window)
-		endfor
+  " get layout info 
+  let l:windows=[]
+  for i in range(1,winnr('$'))
+    let l:window={
+          \'buffer':winbufnr(i)
+          \,'width':winwidth(i)
+          \,'height':winheight(i)}
+    call add(l:windows,l:window)
+  endfor
 
-    " set layout info to layouts[]
-    if len(s:layouts) <= s:current_layout
-      call add(s:layouts, {})
-    endif
-    let s:layouts[s:current_layout] = {'layout':winlayout(),'windows':l:windows}
-	endif
+  if !has_key(s:layouts[s:current_layout],'buffers')
+    let s:layouts[s:current_layout]['buffers']=[bufnr('%')]
+  endif
+  let s:layouts[s:current_layout] = {
+        \'layout':winlayout()
+        \,'windows':l:windows
+        \, 'buffers':s:layouts[s:current_layout]['buffers']
+        \}
 endfunction
 
 " split window
 " @param layout = s:layouts['layout'](Recursive)
 function! s:split_window(layout)
   if a:layout[0]=='row'
-    for a in range(len(a:layout[1])-1)
+    for _ in range(len(a:layout[1])-1)
       execute ':vsplit'
       execute ':wincmd h'
     endfor
-    for win in a:layout[1]
-      call s:split_window(win)
+    for window in a:layout[1]
+      call s:split_window(window)
       execute ':wincmd l'
     endfor
   elseif a:layout[0]=='col'
-    for a in range(len(a:layout[1])-1)
+    for _ in range(len(a:layout[1])-1)
       execute ':split'
       execute ':wincmd k'
     endfor
-    for win in a:layout[1]
-      call s:split_window(win)
+    for window in a:layout[1]
+      call s:split_window(window)
       execute ':wincmd j'
     endfor
   endif
@@ -144,12 +208,10 @@ endfunction
 " switch layout
 " @param flg=vector on change
 function! blm#switch_layout(flg)
+  call s:update_layout()
 	if &previewwindow
     pclose
 	endif
-	call blm#layout_update()
-
-  let s:layout_update_ignore=1 " layout_update() disable 
 
 	" reset window split
 	if winnr('$')!=1
@@ -159,14 +221,14 @@ function! blm#switch_layout(flg)
 
 	" get layout to change
 	if a:flg==0
-    let s:current_layout += 1
+    let s:current_layout+=1
   else
-    let s:current_layout -= 1
+    let s:current_layout-=1
 	endif
-  if s:current_layout < 0
-    let s:current_layout = len(s:layouts) - 1
-  elseif s:current_layout > len(s:layouts) - 1
-    let s:current_layout = 0
+  if s:current_layout<0
+    let s:current_layout=len(s:layouts)-1
+  elseif s:current_layout>len(s:layouts)-1
+    let s:current_layout=0
   endif
 
   " split window by layout
@@ -184,18 +246,16 @@ function! blm#switch_layout(flg)
     endif
 	endfor
 
-  let s:layout_update_ignore=0 " layout_update() enable 
   if bufexist==0
-    blm#switch_layout(a:flg)
+    call blm#switch_layout(a:flg)
   endif
 endfunction
-
 
 " #############################################
 " # control window layout when closing buffer #
 " #############################################
 "  count on opened buffer
-function! blm#get_buf_count()
+function! s:get_buffers_count()
   let l:count=0
   for i in range( 1 , bufnr('$') )
     if buflisted(i)
@@ -216,14 +276,13 @@ function! blm#close()
   if getcmdwintype()!=''
     " close command line window
     quit
-  elseif blm#get_buf_count()<=1
+  elseif s:get_buffers_count()<=1
     " when last buffer, vim close
     quit
   else
     " close buffer
-    let l:current_buffer=bufnr('%')
-    call blm#buffer_change(-1,0)
-    execute ':bw '.l:current_buffer
+    call s:remove_buffer()
+    execute ':bw '.bufnr('%')
   endif
 endfunction
 
@@ -238,15 +297,16 @@ cabbrev <silent>wq Wq
 " ###############################
 " initialize
 function! blm#init()
-  call blm#layout_update()
+  let s:ignore_add_buffer=0
 	call termopen(&shell,{})
+  call add(s:layouts, {})
+  call s:update_layout()
 	f terminal0
-	call blm#buf_enter()
 	startinsert
 endfunction
 
 " when buffer enter
-function! blm#buf_enter()
+function! blm#enter_buffer()
 	if &buftype=='terminal'
 		set nonumber
     startinsert
@@ -259,21 +319,28 @@ function! blm#buf_enter()
 	catch
 		execute ':cd ~'
 	endtry
+  call s:add_buffer()
 endfunction
 
-" when buffer close
-function! blm#buf_close()
-  for i in range(len(s:layouts[s:current_layout]['windows']))
-    if s:layouts[s:current_layout]['windows'][i]['buffer'] == bufnr('%')
-      call remove(s:layouts[s:current_layout]['windows'],i)
-    endif
-  endfor
+function! blm#add_buffer()
+  call s:add_buffer()
 endfunction
 
 " when terminal close
-function! blm#term_close()
-  bd!
-	if bufname('%')==''
-		quit
-	endif
+function! blm#close_term()
+  call blm#close()
+endfunction
+
+" for debug
+function! blm#echo_layouts()
+  echo s:layouts
+endfunction
+function! blm#echo_layout()
+  echo s:layouts[s:current_layout]['layout']
+endfunction
+function! blm#echo_current_buffers()
+  echo s:layouts[s:current_layout]['buffers']
+endfunction
+function! blm#echo_windows()
+  echo s:layouts[s:current_layout]['windows']
 endfunction
