@@ -19,7 +19,7 @@ let s:TERMINAL  ='terminal'
 " change_buffer
 " @param vector : 0=normal, 1=reverse
 " #param order  : 0=terminal, -1(else)=else
-function! s:change_buffer(vector,order)
+function! blm#change_buffer(vector,order)
  " assignment buffer list
   let l:buffers=[]
   for buffer in s:layouts[s:i][s:WINDOW][winnr()][s:BUFFER]
@@ -64,7 +64,7 @@ function! s:change_buffer(vector,order)
   if l:target_buffer==-1&&l:order==0
     " if the target buffer is not found
     " and when order is terminal -> open new terminal
-    call s:add_terminal(-1)
+    call blm#add_terminal()
   else
     " if find target buffer
     execute ':'.l:target_buffer.'b'
@@ -137,53 +137,17 @@ function! blm#remove_buffer(flg)
     endfor
 
     if has_key(s:layouts[s:i][s:WINDOW],winnr())
-      call blm#switch_buffer(-1)
+      call blm#switch_buffer(-1,0)
     else
       close
     endif
   endif
 
   if a:flg==0&&l:ignore_delete_buffer==-1
-    execute ':bd'.l:tmp
+    execute ':bw'.l:tmp
   endif
 
   call s:update_tabline()
-endfunction
-
-" arg 0:new layout, -1:current window
-function! blm#add_terminal(proc)
-  call s:add_terminal(a:proc)
-endfunction
-
-" arg left,right,up,down
-function! blm#split_terminal(vector)
-  let s:ignore_add_buffer=-1
-  call s:split(a:vector)
-  enew
-  let s:ignore_add_buffer=0
-  call s:add_terminal(-1)
-endfunction
-
-function! s:split(vector)
-  if a:vector=='down'
-    execute ':rightbelow split'
-  elseif a:vector=='up'
-    execute ':leftabove split'
-  elseif a:vector=='left'
-    execute ':leftabove vertical split'
-  elseif a:vector=='right'
-    execute ':rightbelow vertical split'
-  endif
-endfunction
-
-function! blm#split_window(vector)
-  call s:split(a:vector)
-  call s:update_layout()
-endfunction
-
-" arg 0,1
-function! blm#switch_buffer(vector)
-  call s:change_buffer(a:vector,&buftype==s:TERMINAL ? 0 : -1)
 endfunction
 
 " ####################
@@ -200,14 +164,7 @@ endfunction
 " terminal open
 " param flg: 0   =newlayout(terminal only window)
 "            else=terminal open by current window
-function! s:add_terminal(flg)
-  if a:flg==0
-    call s:update_layout()
-    call s:add_layout()
-  endif
-  if a:flg==0&&winnr('$')>1
-    only
-  endif
+function! blm#add_terminal()
   " disable add buffer
   let s:ignore_add_buffer=-1
   " create new window
@@ -232,6 +189,15 @@ function! blm#toggle_preview_term()
     call s:change_buffer(0,0)
     resize 14
   endif
+endfunction
+
+" arg left,right,up,down
+function! blm#split_terminal(vector)
+  let s:ignore_add_buffer=-1
+  call s:split(a:vector)
+  enew
+  let s:ignore_add_buffer=0
+  call blm#add_terminal()
 endfunction
 
 " ###################################
@@ -289,7 +255,6 @@ function! s:split_window(layout)
     endfor
   endif
 endfunction
-
 
 " switch layout
 " @param flg=vector on change
@@ -354,7 +319,8 @@ function! s:switch_layout_key(flg)
   let s:i=l:target_layout
 endfunction
 
-function! s:add_layout()
+function! blm#add_layout()
+  call s:update_layout()
   let s:i=0
   while 0==0
     if has_key(s:layouts,s:i)
@@ -363,7 +329,28 @@ function! s:add_layout()
       break
     endif
   endwhile
+  if a:flg==0&&winnr('$')>1
+    only
+  endif
 endfunction
+
+function! s:split(vector)
+  if a:vector=='down'
+    execute ':rightbelow split'
+  elseif a:vector=='up'
+    execute ':leftabove split'
+  elseif a:vector=='left'
+    execute ':leftabove vertical split'
+  elseif a:vector=='right'
+    execute ':rightbelow vertical split'
+  endif
+endfunction
+
+function! blm#split_window(vector)
+  call s:split(a:vector)
+  call s:update_layout()
+endfunction
+
 
 " #############################################
 " # control window layout when closing buffer #
@@ -385,9 +372,38 @@ cabbrev <silent>q call blm#close()
 command! -nargs=0 Wq w | call blm#close()
 cabbrev <silent>wq Wq
 
-" ###############################
-" # called by autocmd functions #
-" ###############################
+" #############################
+" # set bufferlist on tablist #
+" #############################
+
+let s:dirsep = fnamemodify(getcwd(),':p')[-1:]
+function! blm#rendering_tabline()
+  if s:chk_has_key() == -1
+    return
+  endif
+  let l:result=''
+  for l:buffer in s:layouts[s:i][s:WINDOW][winnr()][s:BUFFER]
+    if winbufnr(winnr())==buffer
+      let l:result.='%T%#TabLineSel#'
+    else
+      let l:result.='%T%#PmenuSel#'
+    endif
+    let l:bufpath = bufname(l:buffer)
+    let l:tabpath = fnamemodify(l:bufpath, ':p:~:.')
+    let l:tabsep = strridx(l:tabpath, s:dirsep, strlen(l:tabpath) - 2)
+    let l:tablabel = l:tabpath[l:tabsep + 1:]
+    let l:result.=l:tablabel.' '
+  endfor
+  return l:result
+endfunction
+
+function! s:update_tabline()
+  set tabline=%!blm#rendering_tabline()
+endfunction
+
+" ###################
+" # other functions #
+" ###################
 " initialize
 function! blm#init()
   call s:update_layout()
@@ -423,29 +439,4 @@ function! s:chk_has_key()
     return -1
   endif
   return 0
-endfunction
-
-let s:dirsep = fnamemodify(getcwd(),':p')[-1:]
-function! blm#rendering_tabline()
-  if s:chk_has_key() == -1
-    return
-  endif
-  let l:result=''
-  for l:buffer in s:layouts[s:i][s:WINDOW][winnr()][s:BUFFER]
-    if winbufnr(winnr())==buffer
-      let l:result.='%T%#TabLineSel#'
-    else
-      let l:result.='%T%#PmenuSel#'
-    endif
-    let l:bufpath = bufname(l:buffer)
-    let l:tabpath = fnamemodify(l:bufpath, ':p:~:.')
-    let l:tabsep = strridx(l:tabpath, s:dirsep, strlen(l:tabpath) - 2)
-    let l:tablabel = l:tabpath[l:tabsep + 1:]
-    let l:result.=l:tablabel.' '
-  endfor
-  return l:result
-endfunction
-
-function! s:update_tabline()
-  set tabline=%!blm#rendering_tabline()
 endfunction
