@@ -31,13 +31,7 @@ function! blm#change_buffer(vector,order)
     let l:buffers=reverse(l:buffers)
   endif
 
-  " assignment args
-  if a:order==0
-    let l:order=0
-  else
-    let l:order=-1
-  endif
-  if l:order==-1 && &buftype==s:TERMINAL
+  if a:order==-1 && &buftype==s:TERMINAL
     wincmd t
   endif
 
@@ -46,7 +40,7 @@ function! blm#change_buffer(vector,order)
   let l:found_current_buffer=0
 
   for buffer in l:buffers
-    if buflisted(buffer)&&match(bufname(buffer),s:TERMINAL.'.*')==l:order
+    if buflisted(buffer)&&match(bufname(buffer),s:TERMINAL.'.*')==a:order
       if l:target_buffer==-1
         let l:target_buffer=buffer
       endif
@@ -61,10 +55,14 @@ function! blm#change_buffer(vector,order)
     endif
   endfor
 
-  if l:target_buffer==-1&&l:order==0
-    " if the target buffer is not found
-    " and when order is terminal -> open new terminal
-    call blm#add_terminal()
+  if l:target_buffer==-1
+    if a:order==0
+      " if the target buffer is not found
+      " and when order is terminal -> open new terminal
+      call blm#add_terminal()
+    else
+      call blm#change_buffer(a:vector,0)
+    endif
   else
     " if find target buffer
     execute ':'.l:target_buffer.'b'
@@ -137,7 +135,7 @@ function! blm#remove_buffer(flg)
     endfor
 
     if has_key(s:layouts[s:i][s:WINDOW],winnr())
-      call blm#switch_buffer(-1,0)
+      call blm#change_buffer(-1,-1)
     else
       close
     endif
