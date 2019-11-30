@@ -21,12 +21,7 @@ let s:TERMINAL  ='terminal'
 " #param order  : 0=terminal, -1(else)=else
 function! blm#change_buffer(vector,order)
  " assignment buffer list
-  let l:buffers=[]
-  for buffer in s:layouts[s:i][s:WINDOW][winnr()][s:BUFFER]
-    call add(l:buffers,buffer)
-  endfor
-
-  " reverse depending on argument
+  let l:buffers=copy(s:layouts[s:i][s:WINDOW][winnr()][s:BUFFER])
   if a:vector==1
     let l:buffers=reverse(l:buffers)
   endif
@@ -78,8 +73,8 @@ function! blm#add_buffer()
   if !has_key(s:layouts[s:i][s:WINDOW][winnr()],s:BUFFER)
     let s:layouts[s:i][s:WINDOW][winnr()][s:BUFFER]=[winbufnr(winnr())]
   endif
-  for i in range(len(s:layouts[s:i][s:WINDOW][winnr()][s:BUFFER]))
-    if s:layouts[s:i][s:WINDOW][winnr()][s:BUFFER][i] == winbufnr(winnr())
+  for buffer in s:layouts[s:i][s:WINDOW][winnr()][s:BUFFER]
+    if buffer == winbufnr(winnr())
       return
     endif
   endfor
@@ -114,25 +109,8 @@ function! blm#remove_buffer(flg)
       quit
     endif
   else
-    let l:ignore_delete_buffer=-1
-    for l:i in range(len(s:layouts))
-      if !has_key(s:layouts,l:i)
-        continue
-      endif
 
-      for l:j in range(len(s:layouts[l:i][s:WINDOW]))
-        if !has_key(s:layouts[l:i][s:WINDOW],l:j)
-          continue
-        endif
-
-        for l:k in range(len(s:layouts[l:i][s:WINDOW][l:j][s:BUFFER]))
-          if s:layouts[l:i][s:WINDOW][l:j][s:BUFFER][l:k] == winbufnr(winnr())
-            let l:ignore_delete_buffer=0
-            break
-          endif
-        endfor
-      endfor
-    endfor
+    let l:ignore_delete_buffer=s:check_layout_has_buffer()
 
     if has_key(s:layouts[s:i][s:WINDOW],winnr())
       call blm#change_buffer(-1,-1)
@@ -356,14 +334,9 @@ endfunction
 " #############################################
 " alternate :q command(buffer close/vim close)
 function! blm#close()
-  if getcmdwintype()!=''
-        \ ||&filetype=='gitcommit'
-        \ ||&filetype=='gitrebase'
-        \ ||&filetype=='gitconfig'
-    " close command line window,git window
+  if s:check_layout_has_buffer() == -1
     quit
   else
-    " close buffer
     call blm#remove_buffer(0)
   endif
 endfunction
@@ -429,4 +402,17 @@ function! s:chk_has_key()
     return -1
   endif
   return 0
+endfunction
+
+function! s:check_layout_has_buffer()
+  for l:layout in items(s:layouts)
+    for l:window in items(l:layout[1][s:WINDOW])
+      for l:buffer in l:window[1][s:BUFFER]
+        if l:buffer == winbufnr(winnr())
+          return 0
+        endif
+      endfor
+    endfor
+  endfor
+  return -1
 endfunction
