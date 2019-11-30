@@ -374,33 +374,21 @@ cabbrev <silent>q call blm#close()
 command! -nargs=0 Wq w | call blm#close()
 cabbrev <silent>wq Wq
 
-" #############################
-" # set bufferlist on tablist #
-" #############################
-
-let s:dirsep = fnamemodify(getcwd(),':p')[-1:]
-function! blm#rendering_tabline()
-  if s:chk_has_key() == -1
-    return
+" #####################
+" # ride on buftablne #
+" #####################
+function! s:update_tabline()
+  if exists("*buftabline#update")
+    call buftabline#update(0)
   endif
-  let l:result=''
-  for l:buffer in s:layouts[s:i][s:WINDOW][winnr()][s:BUFFER]
-    if winbufnr(winnr())==buffer
-      let l:result.='%T%#TabLineSel#'
-    else
-      let l:result.='%T%#PmenuSel#'
-    endif
-    let l:bufpath = bufname(l:buffer)
-    let l:tabpath = fnamemodify(l:bufpath, ':p:~:.')
-    let l:tabsep = strridx(l:tabpath, s:dirsep, strlen(l:tabpath) - 2)
-    let l:tablabel = l:tabpath[l:tabsep + 1:]
-    let l:result.=l:tablabel.' '
-  endfor
-  return l:result
 endfunction
 
-function! s:update_tabline()
-  set tabline=%!blm#rendering_tabline()
+" override
+function! buftabline#user_buffers()
+  if s:chk_has_key() == -1
+    return []
+  endif
+	return filter(s:layouts[s:i][s:WINDOW][winnr()][s:BUFFER],'buflisted(v:val) && "quickfix" !=? getbufvar(v:val, "&buftype")')
 endfunction
 
 " ###################
