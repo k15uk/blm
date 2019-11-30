@@ -327,9 +327,10 @@ function! blm#add_layout()
       break
     endif
   endwhile
-  if a:flg==0&&winnr('$')>1
+  if winnr('$')>1
     only
   endif
+  call blm#add_terminal()
 endfunction
 
 function! s:split(vector)
