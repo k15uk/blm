@@ -356,7 +356,10 @@ endfunction
 " alternate :q command(buffer close/vim close)
 function! blm#close()
   if getcmdwintype()!=''
-    " close command line window
+        \ ||&filetype=='gitcommit'
+        \ ||&filetype=='gitrebase'
+        \ ||&filetype=='gitconfig'
+    " close command line window,git window
     quit
   else
     " close buffer
