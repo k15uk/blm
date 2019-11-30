@@ -3,6 +3,7 @@ blm buffer layout manager
 
 ## About
 blm helps you use vim like a terminal multiplexer.
+
 The goal is a clone of byobu in vim
 
 blm manages the layout of the vim buffer window
