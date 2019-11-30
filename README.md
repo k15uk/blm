@@ -8,31 +8,85 @@ The goal is a clone of byobu in vim
 
 blm manages the layout of the vim buffer window
 
-## Usage
-Example (dein)
+## Installation
 
+### on Dein
+''' vim
 [[plugins]]
-
 repo = 'k15uk/blm'
+'''
 
-hook_add = '''
+### on Pathogen
+''' bash
+cd ~/.vim/bundle
+git clone https://github.com/k15uk/blm
+'''
 
-	nnoremap <silent><C-f>j :rightbelow split         <CR>:call blm#term_add(-1)<CR>
-	nnoremap <silent><C-f>k :leftabove  split         <CR>:call blm#term_add(-1)<CR>
-	nnoremap <silent><C-f>h :leftabove  vertical split<CR>:call blm#term_add(-1)<CR>
-	nnoremap <silent><C-f>l :rightbelow vertical split<CR>:call blm#term_add(-1)<CR>
+### on Vundle
+''' vim
+Plugin 'k15uk/blm'
+'''
 
-	nnoremap <silent><Tab>   :call blm#buffer_change(0,-1)<cr>
-	nnoremap <silent><s-tab> :call blm#buffer_change(1,-1)<CR>
+### on Vim-Plug
+''' vim
+Plug 'k15uk/blm'
+'''
 
-	nnoremap <silent><M-.> :call blm#switch_layout(0)<CR>
-	nnoremap <silent><M-,> :call blm#switch_layout(1)<CR>
+### Usage
+####blm#split_window(arg)
+arg:down/up/left/right
+splitting_window
 
-	nnoremap <silent><M-Tab>   :call blm#buffer_change(0, 1)<CR>
-	nnoremap <silent><M-S-Tab> :call blm#buffer_change(1, 1)<CR>
+####blm#split_terminalarg)
+Something like a split-window in byobu
 
-	nnoremap <silent><M-Space> :call blm#term_preview_toggle()<CR>
+arg:down/up/left/right
+Create terminal buffer,after splitting_window
 
-	nnoremap <silent><M-Enter> :call blm#term_add(0)<CR>
-	
+####blm#change_buffer(arg1,arg2)
+Changing buffer (buffer of current window)
+arg1:0 is switching orfer by asc
+arg1:1 is switching orfer by desc
+
+arg2:0  is switching of terminal buffer obly
+arg2:-1 is switching of other buffer
+
+####blm#switch_layout(arg)
+Switching layout (Like switching tabs)
+arg:0 is switching orfer by asc
+arg:1 is switching orfer by desc
+
+####blm#add_layout()
+Create layout (Like new tab)
+Something like a new-window in byobu
+
+####blm#add_terminal()
+Open terminal on current window.
+
+### Example
+''' vim
+nnoremap <silent>sj :call blm#split_window('down' )<CR>
+nnoremap <silent>sk :call blm#split_window('up'   )<CR>
+nnoremap <silent>sh :call blm#split_window('left' )<CR>
+nnoremap <silent>sl :call blm#split_window('right')<CR>
+
+nnoremap <silent><C-f>j           :call blm#split_terminal('down' )<CR>
+nnoremap <silent><C-f>k           :call blm#split_terminal('up'   )<CR>
+nnoremap <silent><C-f>h           :call blm#split_terminal('left' )<CR>
+nnoremap <silent><C-f>l           :call blm#split_terminal('right')<CR>
+
+nnoremap <Tab>               :call blm#change_buffer(0,-1)<CR>
+nnoremap <S-Tab>             :call blm#change_buffer(1,-1)<CR>
+nnoremap <M-Tab>             :call blm#change_buffer(0, 0)<CR>
+nnoremap <M-S-Tab>           :call blm#change_buffer(1, 0)<CR>
+
+nnoremap <silent><M-.>           :call blm#switch_layout(0)<CR>
+nnoremap <silent><M-,>           :call blm#switch_layout(1)<CR>
+
+nnoremap <silent><M-Space>           :call blm#toggle_preview_term()<CR>
+
+
+nnoremap <silent><M-Enter>           :call blm#add_layout()<CR>
+
+nnoremap <silent><M-t>           :call blm#add_terminal()<CR>
 '''
