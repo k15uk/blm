@@ -71,23 +71,22 @@ nnoremap <silent>sk :call blm#split_window('up'   )<CR>
 nnoremap <silent>sh :call blm#split_window('left' )<CR>
 nnoremap <silent>sl :call blm#split_window('right')<CR>
 
-nnoremap <silent><C-f>j           :call blm#split_terminal('down' )<CR>
-nnoremap <silent><C-f>k           :call blm#split_terminal('up'   )<CR>
-nnoremap <silent><C-f>h           :call blm#split_terminal('left' )<CR>
-nnoremap <silent><C-f>l           :call blm#split_terminal('right')<CR>
+nnoremap <silent><C-f>j :call blm#split_terminal('down' )<CR>
+nnoremap <silent><C-f>k :call blm#split_terminal('up'   )<CR>
+nnoremap <silent><C-f>h :call blm#split_terminal('left' )<CR>
+nnoremap <silent><C-f>l :call blm#split_terminal('right')<CR>
 
-nnoremap <Tab>               :call blm#change_buffer(0,-1)<CR>
-nnoremap <S-Tab>             :call blm#change_buffer(1,-1)<CR>
-nnoremap <M-Tab>             :call blm#change_buffer(0, 0)<CR>
-nnoremap <M-S-Tab>           :call blm#change_buffer(1, 0)<CR>
+nnoremap <Tab>     :call blm#change_buffer(0,-1)<CR>
+nnoremap <S-Tab>   :call blm#change_buffer(1,-1)<CR>
+nnoremap <M-Tab>   :call blm#change_buffer(0, 0)<CR>
+nnoremap <M-S-Tab> :call blm#change_buffer(1, 0)<CR>
 
-nnoremap <silent><M-.>           :call blm#switch_layout(0)<CR>
-nnoremap <silent><M-,>           :call blm#switch_layout(1)<CR>
+nnoremap <silent><M-.> :call blm#switch_layout(0)<CR>
+nnoremap <silent><M-,> :call blm#switch_layout(1)<CR>
 
-nnoremap <silent><M-Space>           :call blm#toggle_preview_term()<CR>
+nnoremap <silent><M-Space> :call blm#toggle_preview_term()<CR>
 
+nnoremap <silent><M-Enter> :call blm#add_layout()<CR>
 
-nnoremap <silent><M-Enter>           :call blm#add_layout()<CR>
-
-nnoremap <silent><M-t>           :call blm#add_terminal()<CR>
+nnoremap <silent><M-t> :call blm#add_terminal()<CR>
 ```
