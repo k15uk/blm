@@ -34,31 +34,39 @@ Plug 'k15uk/blm'
 ```
 
 ### Usage
-####blm#split_window(arg)
+#### blm#split_window(arg)
 arg:down/up/left/right
+
 splitting_window
 
 #### blm#split_terminalarg)
 Something like a split-window in byobu
 
 arg:down/up/left/right
+
 Create terminal buffer,after splitting_window
 
 #### blm#change_buffer(arg1,arg2)
 Changing buffer (buffer of current window)
+
 arg1:0 is switching orfer by asc
+
 arg1:1 is switching orfer by desc
 
 arg2:0  is switching of terminal buffer obly
+
 arg2:-1 is switching of other buffer
 
 #### blm#switch_layout(arg)
 Switching layout (Like switching tabs)
+
 arg:0 is switching orfer by asc
+
 arg:1 is switching orfer by desc
 
 #### blm#add_layout()
 Create layout (Like new tab)
+
 Something like a new-window in byobu
 
 #### blm#add_terminal()
