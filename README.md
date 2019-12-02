@@ -72,6 +72,9 @@ Something like a new-window in byobu
 #### blm#add_terminal()
 Open terminal on current window.
 
+#### blm#get_layouts()
+Get headers on layout list
+
 ### Example
 ``` vim
 nnoremap <silent>sj :call blm#split_window('down' )<CR>
@@ -97,4 +100,22 @@ nnoremap <silent><M-Space> :call blm#toggle_preview_term()<CR>
 nnoremap <silent><M-Enter> :call blm#add_layout()<CR>
 
 nnoremap <silent><M-t> :call blm#add_terminal()<CR>
+
+let g:lightline = {
+  \ 'colorscheme': 'wombat',
+  \ 'active': {
+  \   'left'  : [ [ 'mode', 'paste' ],
+  \               [ 'blm', 'readonly', 'filename', 'modified' ],
+  \               [ 'linter_checking', 'linter_errors', 'linter_warnings', 'linter_ok' ]
+  \             ],
+  \           },
+  \ 'component_function': {
+  \   'blm' : 'LightlineBlm'
+  \   },
+  \ }
+
+function! LightlineBlm()
+  return blm#get_layouts()
+endfunction
+
 ```
