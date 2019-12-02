@@ -330,6 +330,18 @@ function! blm#split_window( vector )
   call s:update_layout()
 endfunction
 
+function! blm#get_layouts()
+  let l:head = []
+  for item in items( s:layouts )
+    if item[0] == s:i
+      call add( l:head, '[' . item[0] . ']' )
+    else
+      call add( l:head, item[0] )
+    endif
+  endfor
+  return join( l:head , ',' )
+endfunction
+
 " #############################################
 " # control window layout when closing buffer #
 " #############################################
