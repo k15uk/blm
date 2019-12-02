@@ -309,6 +309,7 @@ function! blm#add_layout()
   if winnr( '$' ) > 1
     only
   endif
+  execute ':cd ~'
   call blm#add_terminal()
 endfunction
 
