@@ -336,7 +336,7 @@ function! blm#get_layouts()
     if item[0] == s:i
       call add( l:head, '[' . item[0] . ']' )
     else
-      call add( l:head, item[0] )
+      call add( l:head, ' ' . item[0] . ' ' )
     endif
   endfor
   return join( l:head , ',' )
