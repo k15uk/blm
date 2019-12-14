@@ -6,6 +6,8 @@ scriptencoding utf-8
 let s:layouts = {}
 let s:i = 0           " iterate the current_layout
 let s:ignore_add_buffer = -1
+let s:ignore_remove_buffer = 0
+let s:preview_terminal = -1
 
 let s:LAYOUT     = 'layout'
 let s:WINDOW     = 'window'
@@ -85,10 +87,17 @@ function! blm#add_buffer()
 endfunction
 
 " when buffer close
-function! blm#remove_buffer( flg )
+function! blm#remove_buffer()
+  if s:ignore_remove_buffer == -1
+    pclose
+    let s:ignore_remove_buffer = 0
+    return
+  endif
   if s:chk_has_key() == -1
     return
   endif
+
+  let l:ignore_delete_buffer = -1
   for l:i in range( len( s:layouts[s:i][s:WINDOW][winnr()][s:BUFFER] ) )
     if s:layouts[s:i][s:WINDOW][winnr()][s:BUFFER][l:i] == winbufnr( winnr() )
       call remove( s:layouts[s:i][s:WINDOW][winnr()][s:BUFFER], l:i )
@@ -119,9 +128,8 @@ function! blm#remove_buffer( flg )
       close
     endif
   endif
-
-  if a:flg == 0 && l:ignore_delete_buffer == -1
-    execute ':bw'.l:tmp
+  if l:ignore_delete_buffer == -1 && match(bufname(l:tmp),'terminal.*')==0
+    execute ':bw!'.l:tmp
   endif
 
   call s:update_tabline()
@@ -148,11 +156,10 @@ function! blm#add_terminal()
   enew
   " enable add buffer
   let s:ignore_add_buffer = 0
-  call termopen( &shell, {} )
+  call termopen( &shell, { 'on_exit' : 'On_exit' } )
   " set buffer name by unique number
   execute ':f '.s:get_terminal_name()
   call s:update_layout()
-  set nonumber
   startinsert
 endfunction
 
@@ -160,11 +167,24 @@ endfunction
 function! blm#toggle_preview_term()
   if &previewwindow
     pclose
+  end
+  if s:preview_terminal == 0
+    wincmd b
+    close
+    let s:preview_terminal = -1
   else
-    pedit
-    wincmd p
-    call blm#change_buffer( 0, 0 )
-    resize 14
+    let s:preview_terminal = 0
+    call s:split( 'down' )
+    resize 20
+    wincmd b
+    enew
+    if bufexists( 'preview_terminal')
+      execute ':'.bufnr('preview_terminal').'b'
+    else
+      call termopen( &shell, { 'on_exit' : 'On_exit' } )
+      execute ':f preview_terminal'
+    end
+    startinsert
   endif
 endfunction
 
@@ -177,6 +197,13 @@ function! blm#split_terminal( vector )
   call blm#add_terminal()
 endfunction
 
+function! On_exit(job_id, code, event)
+  if &previewwindow
+    let s:ignore_remove_buffer = -1
+  endif
+  execute ':bw!'
+endfunction
+
 " ###################################
 " # window layout control functions #
 " ###################################
@@ -185,6 +212,12 @@ function! s:update_layout()
   " close preview window
   if &previewwindow
     pclose
+  endif
+
+  if s:preview_terminal == 0
+    wincmd b
+    close
+    let s:preview_terminal = -1
   endif
 
   " get layout info
@@ -240,6 +273,12 @@ function! blm#switch_layout( flg )
   let s:ignore_add_buffer = -1
   if &previewwindow
     pclose
+  endif
+
+  if s:preview_terminal == 0
+    wincmd b
+    close
+    let s:preview_terminal = -1
   endif
 
   " reset window split
@@ -345,19 +384,10 @@ endfunction
 " #############################################
 " # control window layout when closing buffer #
 " #############################################
-" alternate :q command(buffer close/vim close)
-function! blm#close()
-  if s:check_layout_has_buffer() == -1
-    quit
-  else
-    call blm#remove_buffer( 0 )
-  endif
-endfunction
-
 " alternate :q
-cabbrev <silent>q call blm#close()
+cabbrev <silent>q bd
 " alternate :Wq/wq
-command! -nargs=0 Wq w | call blm#close()
+command! -nargs=0 Wq w | bd
 cabbrev <silent>wq Wq
 
 " #####################
@@ -384,7 +414,7 @@ endfunction
 function! blm#init()
   call s:update_layout()
   let s:ignore_add_buffer = 0
-  call termopen( &shell, {} )
+  call termopen( &shell, { 'on_exit' : 'On_exit' } )
   execute ':f '.s:TERMINAL.'0'
   call s:update_tabline()
   set nonumber
