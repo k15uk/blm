@@ -164,7 +164,7 @@ function! blm#add_terminal()
 endfunction
 
 " toggle on preview window by terminal
-function! blm#toggle_preview_term()
+function! blm#toggle_preview_terminal()
   if &previewwindow
     pclose
   end
