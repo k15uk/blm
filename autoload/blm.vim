@@ -6,7 +6,6 @@ scriptencoding utf-8
 let s:layouts = {}
 let s:i = 0           " iterate the current_layout
 let s:ignore_add_buffer = -1
-let s:ignore_remove_buffer = 0
 let s:preview_terminal = -1
 
 let s:LAYOUT     = 'layout'
@@ -88,11 +87,6 @@ endfunction
 
 " when buffer close
 function! blm#remove_buffer()
-  if s:ignore_remove_buffer == -1
-    pclose
-    let s:ignore_remove_buffer = 0
-    return
-  endif
   if s:chk_has_key() == -1
     return
   endif
@@ -105,11 +99,15 @@ function! blm#remove_buffer()
     endif
   endfor
 
+  let l:tmp = winbufnr( winnr() )
+  let l:winflg = -1
+
   if len( s:layouts[s:i][s:WINDOW][winnr()][s:BUFFER] ) == 0
     call remove( s:layouts[s:i][s:WINDOW], winnr() )
+    let l:winflg = 0
   endif
 
-  let l:tmp = winbufnr( winnr() )
+  let l:ignore_delete_buffer = s:check_layout_has_buffer()
 
   if len( s:layouts[s:i][s:WINDOW] ) == 0
     call remove( s:layouts, s:i )
@@ -118,21 +116,17 @@ function! blm#remove_buffer()
     else
       quit
     endif
+  elseif l:winflg == 0
+    close
   else
-
-    let l:ignore_delete_buffer = s:check_layout_has_buffer()
-
-    if has_key( s:layouts[s:i][s:WINDOW], winnr() )
-      call blm#change_buffer( -1, -1 )
-    else
-      close
-    endif
+    call blm#change_buffer( -1, -1 )
   endif
-  if l:ignore_delete_buffer == -1 && match(bufname(l:tmp),'terminal.*')==0
+
+  if l:ignore_delete_buffer == -1 && match(bufname(l:tmp),'terminal.*')==-1
     execute ':bw!'.l:tmp
   endif
 
-  call s:update_tabline()
+  call s:update_layout()
 endfunction
 
 " ####################
@@ -198,10 +192,7 @@ function! blm#split_terminal( vector )
 endfunction
 
 function! On_exit(job_id, code, event)
-  if &previewwindow
-    let s:ignore_remove_buffer = -1
-  endif
-  execute ':bw!'
+  call blm#remove_buffer()
 endfunction
 
 " ###################################
@@ -385,9 +376,9 @@ endfunction
 " # control window layout when closing buffer #
 " #############################################
 " alternate :q
-cabbrev <silent>q bd
+cabbrev <silent>q call blm#remove_buffer()
 " alternate :Wq/wq
-command! -nargs=0 Wq w | bd
+command! -nargs=0 Wq w | call blm#remove_buffer()
 cabbrev <silent>wq Wq
 
 " #####################

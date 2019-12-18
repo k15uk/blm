@@ -9,7 +9,5 @@ augroup blm
   autocmd TermEnter  * call blm#enter_buffer()
   autocmd BufEnter   * call blm#enter_buffer()
   autocmd BufAdd     * call blm#add_buffer()
-  autocmd BufWipeout * call blm#remove_buffer()
-  autocmd TermClose  * call blm#remove_buffer()
   autocmd FileType gitcommit,gitrebase,gitconfig set bufhidden=delete
 augroup END
